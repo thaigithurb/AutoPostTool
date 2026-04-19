@@ -8,7 +8,7 @@ export default function ImagePreview({ images, onRemove }) {
             {images.map((img, index) => (
                 <div
                     key={index}
-                    className="relative group rounded-lg overflow-hidden border border-white/10 aspect-square"
+                    className="relative group rounded-lg overflow-hidden border border-slate-200 aspect-square"
                 >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img

@@ -95,7 +95,7 @@ export default function AccountForm({ editingAccount, onSaved, onCancel }) {
         <form onSubmit={handleSubmit} className="space-y-4">
             {/* Tên tài khoản */}
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                     Tên tài khoản
                 </label>
                 <input
@@ -103,31 +103,31 @@ export default function AccountForm({ editingAccount, onSaved, onCancel }) {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="VD: Tài khoản chính"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm"
                 />
             </div>
 
             {/* Loại tài khoản */}
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                     Loại tài khoản
                 </label>
                 <select
                     value={accountType}
                     onChange={(e) => setAccountType(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition appearance-none"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition appearance-none shadow-sm"
                 >
-                    <option value="profile" className="bg-gray-900">👤 Profile (Trang cá nhân)</option>
-                    <option value="page" className="bg-gray-900">📄 Page (Fanpage)</option>
+                    <option value="profile" className="bg-white">👤 Profile (Trang cá nhân)</option>
+                    <option value="page" className="bg-white">📄 Page (Fanpage)</option>
                 </select>
             </div>
 
             {/* Cookies */}
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                     Cookies (JSON)
                     {editingAccount && (
-                        <span className="text-gray-500 font-normal"> — để trống nếu không đổi</span>
+                        <span className="text-slate-500 font-normal"> — để trống nếu không đổi</span>
                     )}
                 </label>
                 <textarea
@@ -135,7 +135,7 @@ export default function AccountForm({ editingAccount, onSaved, onCancel }) {
                     onChange={(e) => setCookies(e.target.value)}
                     rows={5}
                     placeholder='Paste cookies từ EditThisCookie vào đây...&#10;&#10;Hướng dẫn:&#10;1. Cài extension EditThisCookie cho Chrome&#10;2. Đăng nhập Facebook&#10;3. Click icon 🍪 → Export&#10;4. Paste vào ô này'
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none transition text-sm font-mono"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none transition text-sm font-mono shadow-sm"
                 />
                 {cookies.trim() && (
                     <p className="text-xs mt-1">
@@ -143,11 +143,11 @@ export default function AccountForm({ editingAccount, onSaved, onCancel }) {
                             try {
                                 const parsed = JSON.parse(cookies.trim());
                                 if (Array.isArray(parsed)) {
-                                    return <span className="text-emerald-400">✅ JSON hợp lệ — {parsed.length} cookies</span>;
+                                    return <span className="text-emerald-600">✅ JSON hợp lệ — {parsed.length} cookies</span>;
                                 }
-                                return <span className="text-red-400">❌ Phải là JSON Array</span>;
+                                return <span className="text-red-600">❌ Phải là JSON Array</span>;
                             } catch {
-                                return <span className="text-red-400">❌ JSON không hợp lệ</span>;
+                                return <span className="text-red-600">❌ JSON không hợp lệ</span>;
                             }
                         })()}
                     </p>
@@ -157,10 +157,10 @@ export default function AccountForm({ editingAccount, onSaved, onCancel }) {
             {/* Access Token (chỉ hiện khi chọn Page) */}
             {accountType === 'page' && (
                 <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                         Page Access Token
                         {editingAccount && (
-                            <span className="text-gray-500 font-normal"> — để trống nếu không đổi</span>
+                            <span className="text-slate-500 font-normal"> — để trống nếu không đổi</span>
                         )}
                     </label>
                     <input
@@ -168,15 +168,15 @@ export default function AccountForm({ editingAccount, onSaved, onCancel }) {
                         value={accessToken}
                         onChange={(e) => setAccessToken(e.target.value)}
                         placeholder="EAABx..."
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition font-mono text-sm"
+                        className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-mono text-sm shadow-sm"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-slate-500 mt-1">
                         Lấy từ{' '}
                         <a
                             href="https://developers.facebook.com/tools/explorer/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-violet-400 hover:underline"
+                            className="text-indigo-600 hover:underline"
                         >
                             Facebook Graph API Explorer
                         </a>
@@ -186,16 +186,16 @@ export default function AccountForm({ editingAccount, onSaved, onCancel }) {
 
             {/* Proxy */}
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                     Proxy
-                    <span className="text-gray-500 font-normal"> (tùy chọn)</span>
+                    <span className="text-slate-500 font-normal"> (tùy chọn)</span>
                 </label>
                 <input
                     type="text"
                     value={proxy}
                     onChange={(e) => setProxy(e.target.value)}
                     placeholder="http://username:password@ip:port"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition font-mono text-sm"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-mono text-sm shadow-sm"
                 />
             </div>
 
@@ -204,7 +204,7 @@ export default function AccountForm({ editingAccount, onSaved, onCancel }) {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-semibold py-3 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-violet-500/20"
+                    className="flex-1 bg-gradient-to-r from-indigo-600 to-indigo-600 hover:from-indigo-500 hover:to-indigo-500 text-white font-semibold py-3 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
                 >
                     {loading ? 'Đang xử lý...' : editingAccount ? '💾 Cập nhật' : '➕ Thêm tài khoản'}
                 </button>
@@ -215,7 +215,7 @@ export default function AccountForm({ editingAccount, onSaved, onCancel }) {
                             resetForm();
                             if (onCancel) onCancel();
                         }}
-                        className="px-6 py-3 border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition"
+                        className="px-6 py-3 border border-slate-300 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition"
                     >
                         Hủy
                     </button>

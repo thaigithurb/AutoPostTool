@@ -50,6 +50,14 @@ exports.update = async (req, res, next) => {
             message: 'Cập nhật tài khoản thành công',
             data: account.toSafeJSON(),
         });
+
+        // Tự động kiểm tra sức khỏe nếu có cập nhật cookies hoặc token
+        if (req.body.cookies || req.body.access_token) {
+            console.log(`🔄 Triggering auto health check for ${account.name} after update...`);
+            accountService.checkHealth(req.params.id).catch(err => {
+                console.error(`❌ Auto health check failed for ${account.name}:`, err.message);
+            });
+        }
     } catch (error) {
         next(error);
     }
@@ -62,6 +70,21 @@ exports.delete = async (req, res, next) => {
         res.json({
             success: true,
             message: 'Xóa tài khoản thành công',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// POST /api/accounts/bulk-delete
+exports.deleteMultiple = async (req, res, next) => {
+    try {
+        const { ids } = req.body;
+        const result = await accountService.deleteMany(ids);
+        res.json({
+            success: true,
+            message: `Đã xóa thành công ${result.deletedCount} tài khoản`,
+            data: result,
         });
     } catch (error) {
         next(error);

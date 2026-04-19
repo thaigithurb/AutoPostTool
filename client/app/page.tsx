@@ -15,8 +15,8 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h2 className="text-2xl font-bold text-white">Dashboard</h2>
-        <p className="text-gray-400 text-sm mt-1">
+        <h2 className="text-2xl font-bold text-slate-900">Dashboard</h2>
+        <p className="text-slate-500 text-sm mt-1">
           Quản lý và lên lịch bài viết tự động cho Facebook
         </p>
       </div>
@@ -27,10 +27,10 @@ export default function Dashboard() {
         <div className="lg:col-span-2">
           <div className="glass-card rounded-2xl p-5 sticky top-24">
             <div className="flex items-center gap-2 mb-5">
-              <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 text-violet-400"
+                  className="h-4 w-4 text-indigo-600"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -43,7 +43,7 @@ export default function Dashboard() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-white">
+              <h3 className="text-lg font-semibold text-slate-900">
                 Tạo bài viết
               </h3>
             </div>
@@ -55,10 +55,10 @@ export default function Dashboard() {
         <div className="lg:col-span-3">
           <div className="glass-card rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-5">
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 text-indigo-400"
+                  className="h-4 w-4 text-indigo-600"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -71,7 +71,7 @@ export default function Dashboard() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-white">
+              <h3 className="text-lg font-semibold text-slate-900">
                 Danh sách bài viết
               </h3>
             </div>

@@ -12,10 +12,23 @@ class PostService {
     /**
      * Lấy tất cả bài viết
      */
-    async getAll(filter = {}) {
+    async getAll(filter = {}, options = {}) {
+        const page = parseInt(options.page) || 1;
+        const limit = parseInt(options.limit) || 10;
+        const skip = (page - 1) * limit;
+
         return await Post.find(filter)
             .populate('account', 'name platform account_type')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+    }
+
+    /**
+     * Đếm tổng số bài viết theo filter
+     */
+    async count(filter = {}) {
+        return await Post.countDocuments(filter);
     }
 
     /**

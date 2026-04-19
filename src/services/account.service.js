@@ -69,6 +69,16 @@ class AccountService {
     }
 
     /**
+     * Xóa nhiều tài khoản cùng lúc
+     */
+    async deleteMany(ids) {
+        if (!Array.isArray(ids) || ids.length === 0) {
+            throw new Error('Danh sách ID xóa không hợp lệ');
+        }
+        return await Account.deleteMany({ _id: { $in: ids } });
+    }
+
+    /**
      * Kiểm tra sức khỏe tài khoản (Health Check)
      * - Profile: Dùng Playwright mở browser kiểm tra cookies
      * - Page: Dùng Graph API kiểm tra access_token
@@ -167,11 +177,8 @@ class AccountService {
             throw new Error('Lỗi đồng bộ Groups: ' + groupsResult.error);
         }
 
-        // Lấy danh sách pages (có thể lỗi hoặc ko tìm thấy, ko quan trọng bằng groups nên ko throw error cứng)
-        const pagesResult = await facebookAutomationService.fetchAccountPages(cookies, proxy);
-        if (pagesResult.success) {
-            account.managed_pages = pagesResult.pages;
-        }
+        // Không đồng bộ Pages nữa theo yêu cầu
+        account.managed_pages = [];
 
         await account.save();
 

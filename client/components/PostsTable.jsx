@@ -7,23 +7,23 @@ import toast from 'react-hot-toast';
 const STATUS_CONFIG = {
     pending: {
         label: 'Đang chờ',
-        color: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-        dot: 'bg-yellow-400',
+        color: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+        dot: 'bg-yellow-500',
     },
     processing: {
         label: 'Đang xử lý',
-        color: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-        dot: 'bg-blue-400 animate-pulse',
+        color: 'bg-blue-50 text-blue-700 border-blue-200',
+        dot: 'bg-blue-500 animate-pulse',
     },
     success: {
         label: 'Thành công',
-        color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-        dot: 'bg-emerald-400',
+        color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        dot: 'bg-emerald-500',
     },
     failed: {
         label: 'Thất bại',
-        color: 'bg-red-500/20 text-red-300 border-red-500/30',
-        dot: 'bg-red-400',
+        color: 'bg-red-50 text-red-700 border-red-200',
+        dot: 'bg-red-500',
     },
 };
 
@@ -52,35 +52,62 @@ const translateError = (errMsg) => {
 export default function PostsTable({ refreshTrigger }) {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    
+    // Pagination state
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState({
+        totalPosts: 0,
+        totalPages: 1,
+        currentPage: 1,
+        limit: 10
+    });
 
-    const loadPosts = useCallback(async () => {
+    const loadPosts = useCallback(async (targetPage = page) => {
         try {
-            const res = await fetchPosts();
+            const res = await fetchPosts(`page=${targetPage}&limit=10`);
             setPosts(res.data || []);
+            if (res.pagination) {
+                setPagination(res.pagination);
+            }
         } catch (err) {
             console.error('Lỗi tải bài viết:', err);
         } finally {
             setLoading(false);
+            setIsRefreshing(false);
         }
-    }, []);
+    }, [page]);
+
+    const handleManualRefresh = async () => {
+        setIsRefreshing(true);
+        await loadPosts(page);
+        toast.success('Đã cập nhật danh sách bài viết', { icon: '🔄' });
+    };
+
+    const handlePageChange = (newPage) => {
+        if (newPage < 1 || newPage > pagination.totalPages) return;
+        setPage(newPage);
+        setLoading(true);
+        loadPosts(newPage);
+    };
 
     // Load lần đầu + khi parent trigger refresh
     useEffect(() => {
-        loadPosts();
+        loadPosts(page);
     }, [refreshTrigger, loadPosts]);
 
-    // Auto-refresh mỗi 30 giây
+    // Auto-refresh mỗi 30 giây (giữ đúng trang hiện tại)
     useEffect(() => {
-        const interval = setInterval(loadPosts, 30000);
+        const interval = setInterval(() => loadPosts(page), 30000);
         return () => clearInterval(interval);
-    }, [loadPosts]);
+    }, [loadPosts, page]);
 
     // ── Hủy bài viết (pending → deleted) ──
     const handleCancel = async (id) => {
         if (!confirm('Bạn muốn hủy bài viết này?')) return;
         try {
             await deletePost(id);
-            await loadPosts();
+            await loadPosts(page);
         } catch (err) {
             toast.error('Lỗi: ' + err.message);
         }
@@ -98,10 +125,10 @@ export default function PostsTable({ refreshTrigger }) {
         });
     };
 
-    if (loading) {
+    if (loading && posts.length === 0) {
         return (
             <div className="flex items-center justify-center py-12">
-                <svg className="animate-spin h-8 w-8 text-violet-400" viewBox="0 0 24 24">
+                <svg className="animate-spin h-8 w-8 text-indigo-600" viewBox="0 0 24 24">
                     <circle
                         className="opacity-25"
                         cx="12"
@@ -121,12 +148,34 @@ export default function PostsTable({ refreshTrigger }) {
         );
     }
 
-    if (posts.length === 0) {
+    if (posts.length === 0 && !loading) {
         return (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-slate-500">
+                <div className="flex justify-end mb-4">
+                    <button
+                        onClick={handleManualRefresh}
+                        className="text-sm text-indigo-600 hover:text-indigo-700 transition flex items-center gap-1 font-medium"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                            />
+                        </svg>
+                        Làm mới
+                    </button>
+                </div>
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-12 w-12 mx-auto mb-3 text-gray-600"
+                    className="h-12 w-12 mx-auto mb-3 text-slate-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -148,16 +197,17 @@ export default function PostsTable({ refreshTrigger }) {
         <div className="space-y-3">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-400">
-                    Tổng cộng: <span className="text-white font-semibold">{posts.length}</span> bài viết
+                <p className="text-sm text-slate-500">
+                    Tổng cộng: <span className="text-slate-900 font-semibold">{pagination.totalPosts}</span> bài viết
                 </p>
                 <button
-                    onClick={loadPosts}
-                    className="text-sm text-violet-400 hover:text-violet-300 transition flex items-center gap-1"
+                    onClick={handleManualRefresh}
+                    disabled={isRefreshing}
+                    className="text-sm text-indigo-600 hover:text-indigo-700 transition flex items-center gap-1 font-medium disabled:opacity-50"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
+                        className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -174,15 +224,15 @@ export default function PostsTable({ refreshTrigger }) {
             </div>
 
             {/* ── Desktop Table (ẩn trên mobile) ── */}
-            <div className="hidden md:block overflow-x-auto rounded-xl border border-white/10">
+            <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="border-b border-white/10 bg-white/5">
-                            <th className="text-left px-4 py-3 text-gray-400 font-medium">Nội dung</th>
-                            <th className="text-left px-4 py-3 text-gray-400 font-medium">Target</th>
-                            <th className="text-left px-4 py-3 text-gray-400 font-medium">Thời gian</th>
-                            <th className="text-left px-4 py-3 text-gray-400 font-medium">Trạng thái</th>
-                            <th className="text-left px-4 py-3 text-gray-400 font-medium">Hành động</th>
+                        <tr className="border-b border-slate-200 bg-slate-50">
+                            <th className="text-left px-4 py-3 text-slate-500 font-medium">Nội dung</th>
+                            <th className="text-left px-4 py-3 text-slate-500 font-medium">Target</th>
+                            <th className="text-left px-4 py-3 text-slate-500 font-medium">Thời gian</th>
+                            <th className="text-left px-4 py-3 text-slate-500 font-medium">Trạng thái</th>
+                            <th className="text-left px-4 py-3 text-slate-500 font-medium">Hành động</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -191,29 +241,32 @@ export default function PostsTable({ refreshTrigger }) {
                             return (
                                 <tr
                                     key={post._id}
-                                    className="border-b border-white/5 hover:bg-white/5 transition"
+                                    className="border-b border-slate-100 hover:bg-slate-50 transition"
                                 >
                                     <td className="px-4 py-3">
-                                        <p className="text-white truncate max-w-[200px]" title={post.content}>
+                                        <p className="text-slate-900 truncate max-w-[200px]" title={post.content}>
                                             {post.content}
                                         </p>
                                         {post.media_urls?.length > 0 && (
-                                            <span className="text-xs text-gray-500">
+                                            <span className="text-xs text-slate-500">
                                                 📎 {post.media_urls.length} media
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-4 py-3 text-gray-300 text-nowrap">
+                                    <td className="px-4 py-3 text-slate-700 text-nowrap">
                                         <div className="flex flex-col">
-                                            <span>{TARGET_LABELS[post.target_type] || post.target_type}</span>
-                                            {post.target_name && (
-                                                <span className="text-xs text-gray-400 max-w-[150px] truncate" title={post.target_name}>
-                                                    {post.target_name}
-                                                </span>
-                                            )}
+                                            <span className="font-medium text-slate-900">{post.account?.name || '—'}</span>
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                <span className="text-xs text-slate-500">{TARGET_LABELS[post.target_type] || post.target_type}</span>
+                                                {post.target_name && (
+                                                    <span className="text-[10px] text-slate-400 max-w-[120px] truncate" title={post.target_name}>
+                                                        / {post.target_name}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-gray-400 text-xs">
+                                    <td className="px-4 py-3 text-slate-500 text-xs">
                                         {formatDate(post.scheduled_at)}
                                     </td>
                                     <td className="px-4 py-3">
@@ -230,17 +283,17 @@ export default function PostsTable({ refreshTrigger }) {
                                         {post.status !== 'success' && (
                                             <button
                                                 onClick={() => handleCancel(post._id)}
-                                                className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition"
+                                                className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition font-medium"
                                             >
                                                 Hủy
                                             </button>
                                         )}
                                         {post.status === 'failed' && post.error_message && (
                                             <span
-                                                className="text-xs text-gray-500 cursor-help"
+                                                className="text-xs text-slate-500 cursor-help ml-2"
                                                 title={translateError(post.error_message)}
                                             >
-                                                ⓘ Xem lỗi
+                                                ⓘ Lỗi
                                             </span>
                                         )}
                                     </td>
@@ -258,10 +311,10 @@ export default function PostsTable({ refreshTrigger }) {
                     return (
                         <div
                             key={post._id}
-                            className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3"
+                            className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-sm"
                         >
                             <div className="flex items-start justify-between gap-3">
-                                <p className="text-white text-sm line-clamp-2 flex-1">{post.content}</p>
+                                <p className="text-slate-900 text-sm line-clamp-2 flex-1">{post.content}</p>
                                 <span
                                     className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full border whitespace-nowrap ${status.color}`}
                                 >
@@ -269,25 +322,28 @@ export default function PostsTable({ refreshTrigger }) {
                                     {status.label}
                                 </span>
                             </div>
-                            <div className="flex items-center justify-between text-xs text-gray-400 mt-2">
-                                <div className="flex flex-col gap-0.5">
-                                    <span>{TARGET_LABELS[post.target_type]}</span>
-                                    {post.target_name && (
-                                        <span className="text-[10px] text-gray-500 max-w-[200px] truncate">{post.target_name}</span>
-                                    )}
+                            <div className="flex items-center justify-between text-xs text-slate-500 mt-2">
+                                <div className="flex flex-col gap-0.5 text-nowrap">
+                                    <span className="font-medium text-slate-900">{post.account?.name}</span>
+                                    <div className="flex items-center gap-1 truncate max-w-[150px]">
+                                        <span>{TARGET_LABELS[post.target_type]}</span>
+                                        {post.target_name && (
+                                            <span className="text-[10px] text-slate-400 truncate">/ {post.target_name}</span>
+                                        )}
+                                    </div>
                                 </div>
-                                <span>{formatDate(post.scheduled_at)}</span>
+                                <span className='text-nowrap ml-2'>{formatDate(post.scheduled_at)}</span>
                             </div>
                             {post.status !== 'success' && (
                                 <button
                                     onClick={() => handleCancel(post._id)}
-                                    className="w-full text-sm text-red-400 border border-red-500/20 rounded-lg py-2 hover:bg-red-500/10 transition"
+                                    className="w-full text-sm text-red-600 border border-red-200 rounded-lg py-2 hover:bg-red-50 transition font-medium"
                                 >
                                     Hủy bài viết
                                 </button>
                             )}
                             {post.status === 'failed' && post.error_message && (
-                                <p className="text-xs text-red-400/70 bg-red-500/10 rounded-lg p-2">
+                                <p className="text-xs text-red-600 bg-red-50 rounded-lg p-2">
                                     {translateError(post.error_message)}
                                 </p>
                             )}
@@ -295,6 +351,50 @@ export default function PostsTable({ refreshTrigger }) {
                     );
                 })}
             </div>
+
+            {/* ── Pagination Controls ── */}
+            {pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                    <p className="text-xs text-slate-500">
+                        Hiển thị bài {((pagination.currentPage - 1) * pagination.limit) + 1} đến {Math.min(pagination.currentPage * pagination.limit, pagination.totalPosts)} trong tổng số {pagination.totalPosts}
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => handlePageChange(page - 1)}
+                            disabled={page === 1 || loading}
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent transition"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <div className="flex items-center gap-1">
+                            {[...Array(pagination.totalPages)].map((_, i) => (
+                                <button
+                                    key={i + 1}
+                                    onClick={() => handlePageChange(i + 1)}
+                                    className={`w-8 h-8 text-xs font-medium rounded-lg transition ${
+                                        page === i + 1
+                                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                                            : 'text-slate-600 hover:bg-slate-100 border border-transparent'
+                                    }`}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => handlePageChange(page + 1)}
+                            disabled={page === pagination.totalPages || loading}
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent transition"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

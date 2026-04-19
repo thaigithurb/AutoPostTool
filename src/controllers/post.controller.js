@@ -22,10 +22,22 @@ exports.getAll = async (req, res, next) => {
         if (req.query.status) filter.status = req.query.status;
         if (req.query.target_type) filter.target_type = req.query.target_type;
 
-        const posts = await postService.getAll(filter);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+
+        const [posts, totalPosts] = await Promise.all([
+            postService.getAll(filter, { page, limit }),
+            postService.count(filter)
+        ]);
+
         res.json({
             success: true,
-            count: posts.length,
+            pagination: {
+                totalPosts,
+                totalPages: Math.ceil(totalPosts / limit),
+                currentPage: page,
+                limit
+            },
             data: posts,
         });
     } catch (error) {

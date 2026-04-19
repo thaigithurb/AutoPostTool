@@ -56,6 +56,13 @@ export async function deleteAccount(id) {
     });
 }
 
+export async function bulkDeleteAccounts(ids) {
+    return fetchAPI('/accounts/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+    });
+}
+
 // ============================================================
 // Posts
 // ============================================================
@@ -114,56 +121,11 @@ export async function syncAccountTargets(id) {
 }
 
 // ============================================================
-// Scraper
+// Group Search
 // ============================================================
-export async function scrapeGroup(data) {
-    return fetchAPI('/scraper/scrape', {
+export async function searchGroups(data) {
+    return fetchAPI('/group-search/search', {
         method: 'POST',
         body: JSON.stringify(data),
-    });
-}
-
-export async function fetchScrapedPosts(query = '') {
-    return fetchAPI(`/scraper/posts${query ? `?${query}` : ''}`);
-}
-
-export async function fetchScrapedCategories() {
-    return fetchAPI('/scraper/categories');
-}
-
-export async function bookmarkScrapedPost(id) {
-    return fetchAPI(`/scraper/posts/${id}/bookmark`, {
-        method: 'PUT',
-    });
-}
-
-export async function deleteScrapedPost(id) {
-    return fetchAPI(`/scraper/posts/${id}`, {
-        method: 'DELETE',
-    });
-}
-
-// ==== Scrape Targets ====
-export async function fetchScrapeTargets() {
-    return fetchAPI('/scraper/targets');
-}
-
-export async function createScrapeTarget(data) {
-    return fetchAPI('/scraper/targets', {
-        method: 'POST',
-        body: JSON.stringify(data),
-    });
-}
-
-export async function updateScrapeTarget(id, data) {
-    return fetchAPI(`/scraper/targets/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-    });
-}
-
-export async function deleteScrapeTarget(id) {
-    return fetchAPI(`/scraper/targets/${id}`, {
-        method: 'DELETE',
     });
 }

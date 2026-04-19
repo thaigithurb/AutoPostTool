@@ -23,8 +23,8 @@ const NAV_ITEMS = [
         ),
     },
     {
-        href: '/scraper',
-        label: 'Cào bài viết',
+        href: '/search',
+        label: 'Tìm bài viết',
         icon: (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -39,7 +39,7 @@ export default function Sidebar() {
     return (
         <>
             {/* ── Desktop Sidebar ── */}
-            <aside className="hidden md:flex flex-col w-56 border-r border-white/10 bg-gray-950/50 min-h-[calc(100vh-4rem)]">
+            <aside className="hidden md:flex flex-col w-56 border-r border-slate-200 bg-white min-h-[calc(100vh-4rem)]">
                 <nav className="flex flex-col gap-1 p-3 mt-2">
                     {NAV_ITEMS.map((item) => {
                         const isActive = pathname === item.href;
@@ -48,8 +48,8 @@ export default function Sidebar() {
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive
-                                    ? 'bg-violet-500/15 text-violet-300 shadow-sm'
-                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                    ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100'
+                                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                                     }`}
                             >
                                 {item.icon}
@@ -61,7 +61,7 @@ export default function Sidebar() {
             </aside>
 
             {/* ── Mobile Bottom Tab Bar ── */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-gray-950/90 backdrop-blur-xl">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/90 backdrop-blur-xl">
                 <div className="flex">
                     {NAV_ITEMS.map((item) => {
                         const isActive = pathname === item.href;
@@ -70,8 +70,8 @@ export default function Sidebar() {
                                 key={item.href}
                                 href={item.href}
                                 className={`flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium transition ${isActive
-                                    ? 'text-violet-400'
-                                    : 'text-gray-500 hover:text-gray-300'
+                                    ? 'text-indigo-600'
+                                    : 'text-slate-500 hover:text-slate-800'
                                     }`}
                             >
                                 {item.icon}

@@ -54,17 +54,68 @@ const humanType = async (page, selector, text) => {
  * @param {import('playwright').Page} page
  */
 const dismissPopups = async (page) => {
+    // ── Phase 1: Close "Continue as [Name]" / "Tiếp tục dưới tên..." dialog ──
+    // CRITICAL: Do NOT click "Tiếp tục" — it triggers a login redirect!
+    // Instead, close the dialog with the X button. Content loads behind the popup.
+    try {
+        // Check if the one-tap login dialog exists
+        const dialog = await page.$('div[role="dialog"]');
+        if (dialog && (await dialog.isVisible())) {
+            // Look for close/X button specifically
+            const closeSelectors = [
+                'div[role="dialog"] div[aria-label="Close"]',
+                'div[role="dialog"] div[aria-label="Đóng"]',
+                'div[role="dialog"] [aria-label="Close"]',
+                'div[role="dialog"] [aria-label="Đóng"]',
+                // SVG close button (the X icon)
+                'div[role="dialog"] svg[aria-label="Close"]',
+                'div[role="dialog"] svg[aria-label="Đóng"]',
+                // Generic close patterns
+                'div[role="dialog"] div[role="button"]:first-child',
+            ];
+
+            let closed = false;
+            for (const selector of closeSelectors) {
+                try {
+                    const closeBtn = await page.$(selector);
+                    if (closeBtn && (await closeBtn.isVisible())) {
+                        await closeBtn.click();
+                        console.log(`  ✅ Đã đóng popup login bằng nút X: ${selector}`);
+                        await randomDelay(1000, 2000);
+                        closed = true;
+                        break;
+                    }
+                } catch {
+                    continue;
+                }
+            }
+
+            // If no X button found, try pressing Escape to close the dialog
+            if (!closed) {
+                try {
+                    await page.keyboard.press('Escape');
+                    console.log('  ✅ Đã đóng popup bằng phím Escape');
+                    await randomDelay(1000, 2000);
+                } catch {}
+            }
+        }
+    } catch {
+        // Ignore
+    }
+
+    // ── Phase 2: Handle other popups (cookie consent, notifications, etc.) ──
     const popupSelectors = [
-        // Nút "Không phải bây giờ" / "Not Now"
-        '[aria-label="Close"]',
-        '[aria-label="Đóng"]',
-        'div[role="dialog"] div[aria-label="Close"]',
-        'div[role="dialog"] div[aria-label="Đóng"]',
-        // Popup notification
-        'div[role="dialog"] button:has-text("Not Now")',
-        'div[role="dialog"] button:has-text("Không phải bây giờ")',
-        'div[role="dialog"] button:has-text("Decline optional cookies")',
-        'div[role="dialog"] button:has-text("Từ chối cookie không bắt buộc")',
+        // "Not Now" / "Không phải bây giờ"
+        'div[role="dialog"] div[role="button"]:has-text("Not Now")',
+        'div[role="dialog"] div[role="button"]:has-text("Không phải bây giờ")',
+        // Cookie consent
+        'div[role="dialog"] div[role="button"]:has-text("Decline optional cookies")',
+        'div[role="dialog"] div[role="button"]:has-text("Từ chối cookie không bắt buộc")',
+        'div[role="dialog"] div[role="button"]:has-text("Allow essential and optional cookies")',
+        'div[role="dialog"] div[role="button"]:has-text("Cho phép cookie")',
+        // Notification permission
+        'div[role="dialog"] div[role="button"]:has-text("Block")',
+        'div[role="dialog"] div[role="button"]:has-text("Chặn")',
     ];
 
     for (const selector of popupSelectors) {
@@ -76,10 +127,12 @@ const dismissPopups = async (page) => {
                 await randomDelay(500, 1000);
             }
         } catch {
-            // Bỏ qua nếu không tìm thấy
+            // Skip if not found
         }
     }
 };
+
+
 
 // ============================================================
 // Facebook Automation Service
@@ -141,24 +194,52 @@ class FacebookAutomationService {
         return { browser, context, page };
     }
 
-    /**
-     * Kiểm tra xem đã đăng nhập Facebook thành công chưa
-     * @param {import('playwright').Page} page
-     * @returns {boolean}
-     */
     async _verifyLogin(page) {
         try {
-            await page.goto('https://www.facebook.com/', {
-                waitUntil: 'domcontentloaded',
-                timeout: 30000,
-            });
+            // Nếu đang ở trang trống, mới nhảy tới trang chủ
+            if (page.url() === 'about:blank') {
+                await page.goto('https://www.facebook.com/', {
+                    waitUntil: 'domcontentloaded',
+                    timeout: 30000,
+                });
+            }
+            
             await randomDelay(2000, 3000);
             await dismissPopups(page);
 
-            // Kiểm tra có bị redirect về trang login không
             const url = page.url();
-            if (url.includes('/login') || url.includes('/checkpoint')) {
-                console.error('❌ Cookies hết hạn hoặc bị checkpoint');
+            
+            // 1. Kiểm tra URL (Checkpoint hoặc Login)
+            if (url.includes('/checkpoint')) {
+                console.error('🟠 Tài khoản bị checkpoint');
+                return false;
+            }
+            if (url.includes('/login') || url.includes('/reg/')) {
+                console.error('🔴 Đang ở trang đăng nhập');
+                return false;
+            }
+
+            // 2. Kiểm tra sự xuất hiện của form đăng nhập (Email/Pass)
+            const hasLoginForm = await page.evaluate(() => {
+                const passField = document.querySelector('input[type="password"], input[name="pass"]');
+                const emailField = document.querySelector('input[name="email"]');
+                return !!(passField && emailField);
+            });
+            if (hasLoginForm) {
+                console.error('🔴 Phát hiện form đăng nhập - Cookies đã hết hạn');
+                return false;
+            }
+
+            // 3. Kiểm tra dấu hiệu ĐÃ đăng nhập (Thanh công cụ, Search, Profile)
+            const isLoggedIn = await page.evaluate(() => {
+                const header = document.querySelector('[role="navigation"], [role="banner"], [aria-label="Facebook"]');
+                const search = document.querySelector('[role="search"]');
+                const composer = document.querySelector('[aria-label*="đang nghĩ"], [aria-label*="on your mind"]');
+                return !!(header || search || composer);
+            });
+
+            if (!isLoggedIn) {
+                console.error('❌ Không tìm thấy dấu hiệu đã đăng nhập');
                 return false;
             }
 
@@ -593,36 +674,25 @@ class FacebookAutomationService {
             );
             browser = br;
 
-            // Navigate tới Facebook
-            await page.goto('https://www.facebook.com/', {
-                waitUntil: 'domcontentloaded',
-                timeout: 30000,
-            });
-            await randomDelay(2000, 3000);
-            await dismissPopups(page);
-
-            // Kiểm tra URL
+            // Dùng hàm chuyên dụng để kiểm tra login chính xác hơn
+            const isLoggedIn = await this._verifyLogin(page);
             const url = page.url();
 
-            if (url.includes('/checkpoint')) {
-                console.log('🟠 [Health Check] Tài khoản bị checkpoint');
-                return {
-                    healthy: false,
-                    status: 'checkpoint',
-                    reason: 'Tài khoản bị checkpoint. Cần xác minh danh tính trên Facebook.',
-                };
-            }
-
-            if (url.includes('/login')) {
-                console.log('🔴 [Health Check] Cookies đã hết hạn');
+            if (!isLoggedIn) {
+                if (url.includes('/checkpoint')) {
+                    return {
+                        healthy: false,
+                        status: 'checkpoint',
+                        reason: 'Tài khoản bị checkpoint. Cần xác minh danh tính trên Facebook.',
+                    };
+                }
                 return {
                     healthy: false,
                     status: 'expired',
-                    reason: 'Cookies đã hết hạn. Cần export cookies mới từ trình duyệt.',
+                    reason: 'Cookies đã hết hạn hoặc không hợp lệ. Vui lòng export cookies mới.',
                 };
             }
 
-            console.log('🟢 [Health Check] Tài khoản hoạt động bình thường');
             return {
                 healthy: true,
                 status: 'healthy',
@@ -665,10 +735,24 @@ class FacebookAutomationService {
             await randomDelay(2000, 3000);
             await dismissPopups(page);
 
-            // Scroll a bit to load more groups
-            for (let i = 0; i < 5; i++) {
+            // Cuộn thông minh: Cuộn đến khi không thấy group mới phát sinh
+            let lastGroupCount = 0;
+            let noChangeCount = 0;
+            const maxScrolls = 50; // Giới hạn an toàn
+
+            for (let i = 0; i < maxScrolls; i++) {
+                const currentCount = await page.evaluate(() => document.querySelectorAll('a[href*="/groups/"]').length);
+                if (currentCount === lastGroupCount) {
+                    noChangeCount++;
+                } else {
+                    noChangeCount = 0;
+                    lastGroupCount = currentCount;
+                }
+
+                if (noChangeCount >= 3) break; // Dừng nếu 3 lần cuộn không thấy thêm group mới
+
                 await page.mouse.wheel(0, 2000);
-                await randomDelay(1000, 2000);
+                await randomDelay(1500, 2000);
             }
 
             const groups = await page.evaluate(() => {
@@ -680,17 +764,32 @@ class FacebookAutomationService {
                     const match = url.match(/\/groups\/([^\/\?]+)/);
 
                     const lowerName = name.toLowerCase();
+                    // Loại bỏ các mẫu văn bản thông báo/hoạt động thay vì tên group
+                    const noisePatterns = [
+                        'commented on', 'others like', 'others liked', 'reacted to', 
+                        'posted in', 'mention', 'others commented', 'and others',
+                        'at your post', 'bày tỏ cảm xúc', 'đã bình luận', 'đã thích',
+                        'đã nhắc đến', 'đã chia sẻ', 'trả lời bình luận', 'đã đăng trong'
+                    ];
+
                     if (
                         match && name && name.length > 2 &&
                         !lowerName.includes('tham gia') &&
                         !lowerName.includes('join') &&
                         !lowerName.includes('xem nhóm') &&
-                        !lowerName.includes('view group')
+                        !lowerName.includes('view group') &&
+                        !noisePatterns.some(p => lowerName.includes(p))
                     ) {
                         const id = match[1];
-                        if (id !== 'joins' && id !== 'discover' && id !== 'create' && id !== 'feed') {
-                            // Chỉ lấy dòng đầu tiên nếu có nhiều dòng rớt vào
-                            result[id] = name.split('\n')[0];
+                        const ignored = ['joins', 'discover', 'create', 'feed', 'requests', 'categories', 'messages'];
+                        if (!ignored.includes(id)) {
+                            // Mặc định Facebook có thể nối các dòng thành block nội dung con
+                            let finalName = name.split('\n')[0].trim();
+                            // Chặn lỗi chuỗi Unread dính vào tên group
+                            if (finalName.startsWith('Unread')) {
+                                finalName = finalName.replace('Unread', '').trim();
+                            }
+                            result[id] = finalName;
                         }
                     }
                 });
@@ -699,64 +798,6 @@ class FacebookAutomationService {
 
             console.log(`✅ [Sync] Đã tìm thấy ${groups.length} groups.`);
             return { success: true, groups };
-        } catch (error) {
-            console.error('❌ [Sync] Lỗi:', error.message);
-            return { success: false, error: error.message };
-        } finally {
-            if (browser) await browser.close();
-        }
-    }
-
-    /**
-     * Đồng bộ danh sách Pages quản lý
-     * @param {Array} cookies - Mảng cookies Playwright format
-     * @param {object|null} proxy - Proxy
-     */
-    async fetchAccountPages(cookies, proxy = null) {
-        let browser;
-        try {
-            console.log('\n🔄 [Sync] Đang lấy danh sách Page...');
-            const { browser: br, page } = await this._initBrowser(cookies, proxy, true);
-            browser = br;
-
-            const isLoggedIn = await this._verifyLogin(page);
-            if (!isLoggedIn) {
-                return { success: false, error: 'Cookies hết hạn hoặc bị checkpoint.' };
-            }
-
-            await page.goto('https://www.facebook.com/pages', { waitUntil: 'domcontentloaded', timeout: 30000 });
-            await randomDelay(2000, 3000);
-            await dismissPopups(page);
-
-            for (let i = 0; i < 3; i++) {
-                await page.mouse.wheel(0, 1000);
-                await randomDelay(1000, 1500);
-            }
-
-            const pages = await page.evaluate(() => {
-                const links = Array.from(document.querySelectorAll('a[href*="facebook.com/"]'));
-                const result = {};
-                links.forEach(a => {
-                    const url = a.getAttribute('href');
-                    const name = a.innerText.trim();
-                    // Just a heuristic for now, /pages usually lists them nicely but FB DOM is obscure
-                    if (url && name && name.length > 2 && !url.includes('/groups/') && !url.includes('/events/') && !url.includes('/friends/')) {
-                        // Extract vanity or id
-                        const match = url.match(/facebook\.com\/([^\/\?]+)/);
-                        if (match) {
-                            const id = match[1];
-                            const ignored = ['pages', 'watch', 'marketplace', 'gaming', 'groups', 'friends', 'bookmarks', 'events', 'jobs', 'memories'];
-                            if (!ignored.includes(id)) {
-                                result[id] = name.split('\n')[0];
-                            }
-                        }
-                    }
-                });
-                return Object.keys(result).map(id => ({ id, name: result[id] }));
-            });
-
-            console.log(`✅ [Sync] Đã tìm thấy ${pages.length} pages (có thể lẫn profile).`);
-            return { success: true, pages };
         } catch (error) {
             console.error('❌ [Sync] Lỗi:', error.message);
             return { success: false, error: error.message };

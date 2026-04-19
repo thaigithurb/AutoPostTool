@@ -6,7 +6,7 @@ const accountRoutes = require('./routes/account.routes');
 const groupRoutes = require('./routes/group.routes');
 const postRoutes = require('./routes/post.routes');
 const uploadRoutes = require('./routes/upload.routes');
-const scraperRoutes = require('./routes/scraper.routes');
+const groupSearchRoutes = require('./routes/group-search.routes');
 
 // Middleware
 const errorHandler = require('./middlewares/errorHandler');
@@ -27,7 +27,7 @@ app.use('/api/accounts', accountRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/upload', uploadRoutes);
-app.use('/api/scraper', scraperRoutes);
+app.use('/api/group-search', groupSearchRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
